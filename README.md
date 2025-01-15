@@ -2,15 +2,14 @@
 
 ![](./action_items_animation.gif)
 
-This is a sample app that demonstrates how to create a bot that extracts action items from Zoom meetings using [Recall.ai](https://recall.ai) and [OpenAI](https://platform.openai.com/docs/overview).
+This is a sample app that demonstrates how to create a bot that extracts action items from google meet using [Recall.ai](https://recall.ai) and used Prediciton Guard summarize updates and QnA of past meetings.
 
 ## Prerequisites
 
 1. [Node.js](https://nodejs.org/en/)
 2. [Ngrok](https://ngrok.com/docs/getting-started/)
 3. [Recall.ai API Token](https://www.recall.ai/)
-4. [OpenAI API Token](https://platform.openai.com/docs/overview)
-5. [Zoom App Credentials](https://docs.recall.ai/docs/set-up-zoom)
+4. [PG API Token](https://predictionguard.com/get-started)
 
 ## Getting Started
 
@@ -65,7 +64,7 @@ Create a `.env` file for the backend. There's a `.env.example` file to get you s
 ```
   RECALL_API_KEY=[recall_api_key]
   RECALL_REGION=[recall_region]
-  OPENAI_API_KEY=[openai_api_key]
+  PREDICTIONGUARD_API_KEY=[predictionguard_api_key]
 ```
 
 If you haven't already, you'll need to sign up for a [Recall.ai account](https://www.recall.ai/) and create an API key from the [Dashboard](https://us-west-2.recall.ai/dashboard/).
@@ -77,13 +76,6 @@ If you haven't already, you'll need to sign up for a [Recall.ai account](https:/
 > - If you're an **individual developer**, you should use the **`us-west-2`** region.
 > - If you're an **enterprise on a trial with Recall.ai**, you should use the **`us-east-1`** region.
 
-### Create Zoom App Credentials
-
-Zoom App Credentials are used to authenticate the bot with Zoom. Recall.ai has a guide on how to set this up [here](https://docs.recall.ai/docs/set-up-zoom).
-
-### OpenAI Setup
-
-Sign up for an [OpenAI account](https://platform.openai.com/signup) and create an API key from the [API Keys](https://platform.openai.com/account/api-keys) page.
 
 ### Webhook Setup
 
