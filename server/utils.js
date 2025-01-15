@@ -1,44 +1,139 @@
 const config = require("./config");
-const OpenAI = require("openai");
+const axios = require("axios");
 
-const openai = new OpenAI({
-  apiKey: config.openaiApiKey,
-});
 
-const extractActionItems = async (meetingTranscript) => {
-  const response = await openai.chat.completions.create({
-    model: "gpt-4-turbo",
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `
-            You will be provided with a meeting transcript. For each participant in the meeting, you must extract         
-            at least one action item. Action items are short, concise statements that describe a task that needs to be completed.
-            Format the output as a JSON array where each object represents a participant and their action items.
-            Transcript:
-            ${meetingTranscript}
-            
-            Output format:
-            {
-              meeting_data: [
-                  {
-                      "user": "participant name",
-                      "action_items": ["action item 1", "action item 2", ...]
-                  },
-                  {
-                      "user": "participant name",
-                      "action_items": ["action item 1", "action item 2", ...]
-                  },
-                  ...
-              ]
-            }
-         `,
-      },
-    ],
-  });
-  const data = JSON.parse(response.choices[0].message.content).meeting_data;
-  return data;
+const preprocessGoogleMeetTranscript = (ccTranscript) => {
+  const grouped = ccTranscript.reduce((acc, segment) => {
+    const speaker = segment.speaker || `Speaker ${segment.speaker_id}`;
+    const text = segment.words.map((word) => word.text).join(" ");
+
+    if (acc[speaker]) {
+      acc[speaker].push(text);
+    } else {
+      acc[speaker] = [text];
+    }
+    return acc;
+  }, {});
+
+  return Object.entries(grouped)
+    .map(([speaker, texts]) => `${speaker}: ${texts.join(" ")}`)
+    .join("\n");
 };
 
-module.exports = { extractActionItems };
+const cleanUpTranscript = async (meetingTranscript) => {
+  try {
+    const response = await axios.post(
+      "https://api.predictionguard.com/chat/completions",
+      {
+        model: "Hermes-3-Llama-3.1-8B",
+        messages: [
+          {
+            role: "system",
+            content: `
+                You will be provided with a raw meeting transcript that may contain transcription errors. Your task is to clean up these errors while preserving the original meaning of the content. Ensure that the cleaned-up transcript maintains grammatical correctness and readability without altering the intent or context.
+                Output the cleaned-up transcript as plain text.
+            `,
+          },
+          {
+            role: "user",
+            content: `
+                Raw Transcript:
+                ${meetingTranscript}
+                
+                Output format:
+                Cleaned Transcript:
+                <Your cleaned-up transcript here>
+            `,
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.1, 
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.predictionguardApiKey}`,
+        },
+      }
+    );
+
+    const rawContent = response.data.choices[0].message.content;
+    const cleanedTranscript = rawContent.replace("Cleaned Transcript:", "").trim();
+
+    return cleanedTranscript;
+  } catch (error) {
+    console.error("Error fetching data from Prediction Guard API for cleaning transcript:", error.response?.data || error.message);
+    throw new Error("Failed to clean up the transcript");
+  }
+};
+
+const extractActionItems = async (meetingTranscript) => {
+  try {
+    const response = await axios.post(
+      "https://api.predictionguard.com/chat/completions",
+      {
+        model: "Hermes-3-Llama-3.1-8B",
+        messages: [
+          {
+            role: "system",
+            content: `
+              You will be provided with a meeting transcript. For each participant in the meeting, you must extract         
+              updates for the task they have been working on. Updates are short, concise statements that describe the progress that has been made.
+              Format the output as a JSON array where each object represents a participant and their update.
+            `,
+          },
+          {
+            role: "user",
+            content: `
+              Transcript:
+              ${meetingTranscript}
+              
+              Output format:
+              {
+                meeting_data: [
+                    {
+                        "user": "participant name",
+                        "updates": ["update 1", "update 2", ...]
+                    },
+                    {
+                        "user": "participant name",
+                        "updates": ["update 1", "update 2", ...]
+                    },
+                    ...
+                ]
+              }
+            `,
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.7,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.predictionguardApiKey}`,
+        },
+      }
+    );
+
+    const rawContent = response.data.choices[0].message.content;
+
+    const jsonStartIndex = rawContent.indexOf("{");
+    if (jsonStartIndex === -1) {
+      throw new Error("No JSON found in API response");
+    }
+
+    const jsonContent = rawContent.substring(jsonStartIndex);
+
+    const data = JSON.parse(jsonContent).meeting_data;
+    return data;
+  } catch (error) {
+    console.error(
+      "Error fetching data from Prediction Guard API:",
+      error.response?.data || error.message
+    );
+    throw new Error("Failed to extract action items");
+  }
+};
+
+module.exports = { preprocessGoogleMeetTranscript, extractActionItems, cleanUpTranscript };
