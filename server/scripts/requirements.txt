@@ -1,0 +1,11 @@
+nltk
+numpy
+datasets
+huggingface_hub
+pandas
+pydantic
+regex
+requests
+scikit-learn
+transformers
+predictionguard
