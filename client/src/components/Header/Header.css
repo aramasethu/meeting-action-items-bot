@@ -1,14 +1,28 @@
 .Header {
-  width: 60%;
+  display: flex; 
+  flex-direction: row; 
+  align-items: center; 
+  justify-content: center; 
+  width: 40%;
+  margin: 0 auto; 
+}
+
+.Header--logo {
+  max-width: 100px;
+  height: auto;
+  margin-right: 20px;
+}
+
+@media (max-width: 768px) {
+  .Header--logo {
+    max-width: 70px;
+  }
 }
 
 .Header--heading {
   color: #212529;
   font-size: 36px;
   font-weight: 500;
-}
-
-.Header--subheading {
-  color: #9499a4;
-  font: normal 400 20px/130% "Helvetica Neue";
+  text-align: left;
+  margin: 0;
 }
